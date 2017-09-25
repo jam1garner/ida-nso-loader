@@ -101,12 +101,14 @@ class NSO:
 def load_file(f, neflags, format):
     set_processor_type("arm", SETPROC_ALL|SETPROC_FATAL)
     SetShortPrm(idc.INF_LFLAGS, idc.GetShortPrm(idc.INF_LFLAGS) | idc.LFLG_64BIT)
+
     #Read in file
     nso = NSO(f)
 
     # add text segment
     mem2base(nso.textBytes, nso.textSegment.memoryLocation)
     add_segm(0, nso.textSegment.memoryLocation, nso.textSegment.memoryLocation+len(nso.textBytes), '.text', "CODE")
+    set_segm_addressing(get_segm_by_name(".text"), 2)
 
     mem2base(nso.rodataBytes, nso.rodataSegment.memoryLocation)
     add_segm(0, nso.rodataSegment.memoryLocation, nso.rodataSegment.memoryLocation+len(nso.rodataBytes), '.rodata', "CONST")
