@@ -20,6 +20,25 @@ except ImportError:
     pip.main(['install','lz4'])
     import lz4
 
+#Stolen from CTUv1
+(DT_NULL, DT_NEEDED, DT_PLTRELSZ, DT_PLTGOT, DT_HASH, DT_STRTAB, DT_SYMTAB, DT_RELA, DT_RELASZ,
+ DT_RELAENT, DT_STRSZ, DT_SYMENT, DT_INIT, DT_FINI, DT_SONAME, DT_RPATH, DT_SYMBOLIC, DT_REL,
+ DT_RELSZ, DT_RELENT, DT_PLTREL, DT_DEBUG, DT_TEXTREL, DT_JMPREL, DT_BIND_NOW, DT_INIT_ARRAY,
+ DT_FINI_ARRAY, DT_INIT_ARRAYSZ, DT_FINI_ARRAYSZ, DT_RUNPATH, DT_FLAGS) = xrange(31)
+DT_GNU_HASH = 0x6ffffef5
+DT_VERSYM = 0x6ffffff0
+DT_RELACOUNT = 0x6ffffff9
+DT_RELCOUNT = 0x6ffffffa
+DT_FLAGS_1 = 0x6ffffffb
+DT_VERDEF = 0x6ffffffc
+DT_VERDEFNUM = 0x6ffffffd
+
+#Also stolen from CTUv1
+STT_NOTYPE = 0
+STT_OBJECT = 1
+STT_FUNC = 2
+STT_SECTION = 3
+
 def Int32(f):
     return struct.unpack('<L', f.read(4))[0]
 
@@ -97,6 +116,51 @@ class NSO:
         	f.write(self.rodataBytes)
         	f.seek(self.dataSegment.memoryLocation)
         	f.write(self.dataBytes)
+
+    #kinda hacky way of reading the decompressed bytes
+    def getBytes(self, pos, amt):
+        if pos >= self.textSegment.memoryLocation and pos < self.textSegment.memoryLocation+len(self.textBytes):
+            return self.textBytes[pos - self.textSegment.memoryLocation:(pos - self.textSegment.memoryLocation) + amt]
+        if pos >= self.rodataSegment.memoryLocation and pos < self.rodataSegment.memoryLocation+len(self.rodataBytes):
+            return self.rodataBytes[pos - self.rodataSegment.memoryLocation:(pos - self.rodataSegment.memoryLocation) + amt]
+        if pos >= self.dataSegment.memoryLocation and pos < self.dataSegment.memoryLocation+len(self.dataBytes):
+            return self.dataBytes[pos - self.dataSegment.memoryLocation:(pos - self.dataSegment.memoryLocation) + amt]
+
+class DynTable:
+    def __init__(self, nso):
+        self.dynamic = []
+
+    def append(self, tag, value):
+        self.dynamic.append((tag, value))
+
+    def __getitem__(self, tag):
+        for i,j in self.dynamic:
+            if i == tag:
+                return j
+        return None
+
+    def getAll(self, tag):
+        l = []
+        for i,j in self.dynamic:
+            if i == tag:
+                l.append(j)
+        return l
+
+    def read(self, nso):
+        i = nso.mod0.dynamicOff
+        tag, value = struct.unpack('<QQ', nso.getBytes(i,0x10))
+        i += 0x10
+        while tag != DT_NULL:
+            self.append(tag, value)
+            tag, value = struct.unpack('<QQ', nso.getBytes(i,0x10))
+            i += 0x10
+        if self[DT_STRTAB] != None:
+            strTable = self[DT_STRTAB]
+            #TODO: Load imports
+        if self[DT_SYMTAB] != None:
+            symTable = self[DT_SYMTAB]
+            
+
 
 def load_file(f, neflags, format):
     set_processor_type("arm", SETPROC_ALL|SETPROC_FATAL)
