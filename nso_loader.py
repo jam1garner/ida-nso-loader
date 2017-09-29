@@ -13,12 +13,13 @@ import os,sys,struct
 from idaapi import *
 
 #Install lz4 if they don't already have it
-try:
-    import lz4
-except ImportError:
-    import pip
-    pip.main(['install','lz4'])
-    import lz4
+idaapi.require('lz4')
+# try:
+#     import lz4
+# except ImportError:
+#     import pip
+#     pip.main(['install','lz4'])
+#     import lz4
 
 #Stolen from CTUv1
 (DT_NULL, DT_NEEDED, DT_PLTRELSZ, DT_PLTGOT, DT_HASH, DT_STRTAB, DT_SYMTAB, DT_RELA, DT_RELASZ,
@@ -109,13 +110,13 @@ class NSO:
             size = self.dataSegment.memoryLocation + len(self.dataBytes)
 
         with open('nso_dump.bin', 'wb') as f:
-        	f.write(size * chr(0))
-        	f.seek(self.textSegment.memoryLocation)
-        	f.write(self.textBytes)
-        	f.seek(self.rodataSegment.memoryLocation)
-        	f.write(self.rodataBytes)
-        	f.seek(self.dataSegment.memoryLocation)
-        	f.write(self.dataBytes)
+            f.write(size * chr(0))
+            f.seek(self.textSegment.memoryLocation)
+            f.write(self.textBytes)
+            f.seek(self.rodataSegment.memoryLocation)
+            f.write(self.rodataBytes)
+            f.seek(self.dataSegment.memoryLocation)
+            f.write(self.dataBytes)
 
     #kinda hacky way of reading the decompressed bytes
     def getBytes(self, pos, amt):
@@ -190,14 +191,13 @@ def load_file(f, neflags, format):
 def accept_file(f, n):
     retval = 0
 
-    if n == 0:
+    if n == 0 or isinstance(n, str):
         f.seek(0)
         if struct.unpack('>I', f.read(4))[0] == 0x4E534F30:
             retval = "Nintendo Switch Binary (NSO)"
-
     return retval
 
 # if __name__ == "__main__":
-# 	with open("G:/main", 'rb') as f:
-# 		nso = NSO(f)
-# 		nso.dump()
+#   with open("G:/main", 'rb') as f:
+#       nso = NSO(f)
+#       nso.dump()
